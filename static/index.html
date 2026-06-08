@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>بوت Territorial.io الصديق</title>
+<style>
+  :root{
+    --bg:#0e1726; --card:#16233a; --card2:#1d2f4d; --line:#2b4870;
+    --green:#3fae4b; --green2:#2c8a38; --red:#c4413a; --text:#eaf0fb; --muted:#9fb2cf;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,'Segoe UI',Tahoma,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1b3357 0%,#0e1726 60%);
+    color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px}
+  .logo{font-weight:800;font-size:30px;letter-spacing:1px;margin:6px 0 2px}
+  .logo .io{color:var(--green)}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:18px;text-align:center;max-width:560px}
+  .card{background:linear-gradient(180deg,var(--card),#13203550);border:1px solid #25406b;
+    border-radius:16px;padding:22px;width:min(560px,94vw);box-shadow:0 16px 50px #0008}
+  label{display:block;font-size:14px;color:var(--muted);margin:14px 0 6px}
+  input,select{width:100%;padding:12px 14px;border-radius:10px;
+    border:1px solid #2c4870;background:#0d1830;color:var(--text);font-size:16px;outline:none}
+  input:focus,select:focus{border-color:var(--green)}
+  .row{display:flex;gap:12px}.row>div{flex:1}
+  .colors{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .sw{width:30px;height:30px;border-radius:7px;cursor:pointer;border:2px solid transparent}
+  .sw.active{border-color:#fff;box-shadow:0 0 0 2px #000 inset}
+  .consent{display:flex;align-items:flex-start;gap:10px;margin-top:16px;background:#241a0d;
+    border:1px solid #6b521f;border-radius:11px;padding:12px}
+  .consent input{width:20px;height:20px;margin-top:2px;flex:0 0 auto}
+  .consent label{margin:0;color:#ffd27a;font-size:13.5px;line-height:1.5}
+  .btns{display:flex;gap:12px;margin-top:22px}
+  button{flex:1;padding:14px;border:0;border-radius:11px;font-size:17px;font-weight:700;cursor:pointer;color:#fff}
+  .start{background:linear-gradient(180deg,var(--green),var(--green2))}
+  .start:disabled{filter:grayscale(.7);opacity:.6;cursor:not-allowed}
+  .stop{background:linear-gradient(180deg,#d04f47,#a63a33)}
+  .status{margin-top:18px;background:#0d1830;border:1px solid #243a5e;border-radius:12px;padding:14px;font-size:14px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#888;margin-left:7px;vertical-align:middle}
+  .dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .dot.err{background:var(--red)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .grid div{background:#11203a;border-radius:8px;padding:8px 10px}
+  .grid b{color:#fff;font-size:18px}.grid span{color:var(--muted);font-size:12px;display:block}
+  .warn{margin-top:8px;color:#ffd27a;font-size:13px;display:none}
+  .hint{margin-top:14px;color:var(--muted);font-size:12.5px;line-height:1.6}
+</style>
+</head>
+<body>
+  <div class="logo">🗡️ TERRITORIAL<span class="io">.IO</span> — البوت الصديق</div>
+  <div class="sub">اكتب اسمك واختر الطور ثم اضغط «تشغيل». البوت يدخل اللعبة الحقيقية، يلعب لوحده، ولا يهاجم صديقك.</div>
+
+  <div class="card">
+    <label>اسمك داخل اللعبة</label>
+    <input id="name" maxlength="24" placeholder="مثال: Хакер" value="DevinBot"/>
+
+    <label>اسم صديقك (إن وُجد هذا الاسم في اللعبة لن يهاجمه) — اختياري</label>
+    <input id="friendName" maxlength="24" placeholder="مثال: Ahmed"/>
+
+    <label>الطور (Game Mode)</label>
+    <select id="mode"></select>
+    <div class="warn" id="warn">⚠️ هذا طور أونلاين فيه لاعبون حقيقيون. فعّل الموافقة بالأسفل لتشغيله على مسؤوليتك.</div>
+
+    <div class="row">
+      <div>
+        <label>عدد اللاعبين (للأوضاع المحلية)</label>
+        <input id="players" type="number" min="2" max="512" value="24"/>
+      </div>
+      <div>
+        <label>مدة اللعب (ثانية)</label>
+        <input id="secs" type="number" min="20" max="900" value="150"/>
+      </div>
+    </div>
+
+    <div>
+      <label>لون أرض صديقك (احتياطي للون) — اختياري</label>
+      <div class="colors" id="colors"></div>
+    </div>
+
+    <div class="consent">
+      <input type="checkbox" id="consent"/>
+      <label for="consent">أوافق على لعب الأوضاع الأونلاين (لاعبون حقيقيون) على مسؤوليتي الشخصية، وأعلم أن تشغيل بوت قد يخالف قوانين اللعبة.</label>
+    </div>
+
+    <div class="btns">
+      <button class="start" id="startBtn">▶ تشغيل</button>
+      <button class="stop"  id="stopBtn">■ إيقاف</button>
+    </div>
+
+    <div class="status">
+      <span class="dot" id="dot"></span><b id="stTxt">جاهز</b>
+      <div class="grid" id="grid" style="display:none">
+        <div><b id="mOwn">0</b><span>حجم أرضك</span></div>
+        <div><b id="mFronts">0</b><span>جبهات برية</span></div>
+        <div><b id="mBoats">0</b><span>عبور بحري</span></div>
+        <div><b id="mPhase">—</b><span>السلوك</span></div>
+        <div><b id="mPower">0%</b><span>قوة الهجوم</span></div>
+        <div><b id="mLeft">0</b><span>الوقت (ث)</span></div>
+      </div>
+    </div>
+
+    <div class="hint">
+      شاهد البوت يلعب مباشرةً من تبويب <b>Desktop</b>. السلوك: «expand» توسّع برّي،
+      «naval» عبور بحري بالقوارب، «save» توفير الرصيد لكسب الفائدة. الأوضاع الأونلاين
+      تتطلب تفعيل الموافقة أعلاه.
+    </div>
+  </div>
+
+<script>
+const PALETTE = [[210,70,70],[70,150,210],[80,180,90],[230,180,60],[170,90,200],[230,130,60],[90,200,200],[200,200,200]];
+let friendColor = null;
+const $ = id => document.getElementById(id);
+
+async function loadModes(){
+  const r = await fetch('/api/gamemodes'); const j = await r.json();
+  const sel = $('mode');
+  j.gamemodes.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.label;o.dataset.safe=m.safe;sel.appendChild(o);});
+  sel.onchange = onModeChange; $('consent').onchange = onModeChange; onModeChange();
+}
+function onModeChange(){
+  const o = $('mode').selectedOptions[0];
+  const online = o.dataset.safe !== 'true';
+  const consent = $('consent').checked;
+  $('warn').style.display = online ? 'block' : 'none';
+  // online modes only allowed when consent is ticked
+  $('startBtn').disabled = online && !consent;
+}
+function buildColors(){
+  const box = $('colors');
+  PALETTE.forEach(c=>{const d=document.createElement('div');d.className='sw';
+    d.style.background='rgb('+c.join(',')+')';
+    d.onclick=()=>{friendColor=c;[...box.children].forEach(x=>x.classList.remove('active'));d.classList.add('active');};
+    box.appendChild(d);});
+}
+$('startBtn').onclick = async ()=>{
+  const cfg = {name:$('name').value, mode:$('mode').value,
+    players:+$('players').value, secs:+$('secs').value,
+    friend_name: $('friendName').value.trim(),
+    mp_consent: $('consent').checked};
+  if(friendColor) cfg.friend_color = friendColor;
+  $('stTxt').textContent='جاري التشغيل...';
+  const r = await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
+  const j = await r.json();
+  if(!j.ok){ $('stTxt').textContent = j.error || 'فشل التشغيل'; $('dot').className='dot err'; }
+};
+$('stopBtn').onclick = async ()=>{ await fetch('/api/stop',{method:'POST'}); };
+
+const PHASE={expand:'توسّع برّي',naval:'عبور بحري',"expand+naval":'برّي+بحري',save:'توفير',zoom:'تكبير العرض',spawn:'بداية'};
+async function poll(){
+  try{
+    const r = await fetch('/api/status'); const s = await r.json();
+    const dot=$('dot'), grid=$('grid');
+    if(s.status==='error'||s.status==='blocked'){dot.className='dot err';}
+    else if(s.running){dot.className='dot on';}
+    else{dot.className='dot';}
+    const map={launching:'يفتح اللعبة...',starting:'بدء...',entering_game:'يدخل الطور...',
+      playing:'يلعب الآن ⚔️',finished:'انتهت الجولة ✅',stopped:'متوقف',blocked:'ممنوع',error:'خطأ'};
+    $('stTxt').textContent = (s.error) ? s.error : (map[s.status]||s.status||'جاهز');
+    if(s.status==='playing'){grid.style.display='grid';
+      $('mOwn').textContent=s.own??0;$('mFronts').textContent=s.fronts??0;
+      $('mBoats').textContent=s.boats??0;$('mPhase').textContent=PHASE[s.phase]||s.phase||'—';
+      $('mPower').textContent=Math.round((s.power||0)*100)+'%';$('mLeft').textContent=s.remaining??0;}
+  }catch(e){}
+  setTimeout(poll, 900);
+}
+loadModes(); buildColors(); poll();
+</script>
+</body>
+</html>

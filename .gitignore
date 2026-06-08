@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+bot_state.json
+build/
+dist/
+*.spec
+.venv/
+*.zip

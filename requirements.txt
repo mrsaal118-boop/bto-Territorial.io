@@ -1,0 +1,6 @@
+fastapi>=0.110
+uvicorn>=0.29
+playwright>=1.43
+pywebview>=4.4
+# optional: friend-by-name detection (needs the Tesseract engine installed too)
+pytesseract>=0.3.10
