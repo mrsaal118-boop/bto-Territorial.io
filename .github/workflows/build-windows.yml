@@ -1,0 +1,45 @@
+name: Build Windows app
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Install Chromium into the package (so it bundles into the .exe)
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: "0"
+        run: python -m playwright install chromium
+
+      - name: Build .exe with PyInstaller
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: "0"
+        run: >
+          pyinstaller --noconfirm --windowed --name TerritorialFriendBot
+          --collect-all playwright
+          --add-data "static;static"
+          app.py
+
+      - name: Zip the app
+        run: Compress-Archive -Path dist/TerritorialFriendBot/* -DestinationPath TerritorialFriendBot-windows.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TerritorialFriendBot-windows
+          path: TerritorialFriendBot-windows.zip
+          retention-days: 30
