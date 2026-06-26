@@ -35,6 +35,20 @@ python app.py
 A native window opens. If your machine has no webview runtime, it falls back to
 opening the panel in your default browser.
 
+### Check the live site matches the bot (`diagnose.py`)
+
+Before trusting a run, confirm the bot's assumptions still hold against the
+**real** site. This opens territorial.io in a visible window and reports whether
+the name input, the menu buttons and the game canvas are where the bot expects:
+
+```bash
+python diagnose.py            # visible window + report + screenshots in ./diag/
+python diagnose.py --headless # report only
+```
+
+If it prints `MISMATCH` or lists menu texts "NOT found", send that report and the
+`diag/` screenshots and the selectors can be calibrated to the live UI.
+
 ### Run the offline tests
 
 The bot's game-driving needs a real browser and the live site, but everything
