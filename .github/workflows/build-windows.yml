@@ -25,6 +25,11 @@ jobs:
           PLAYWRIGHT_BROWSERS_PATH: "0"
         run: python -m playwright install chromium
 
+      - name: Run offline tests (API, config, vision JS)
+        run: |
+          pip install pytest httpx
+          python tests/test_app.py
+
       - name: Build .exe with PyInstaller
         env:
           PLAYWRIGHT_BROWSERS_PATH: "0"

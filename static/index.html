@@ -145,7 +145,8 @@ $('startBtn').onclick = async ()=>{
 };
 $('stopBtn').onclick = async ()=>{ await fetch('/api/stop',{method:'POST'}); };
 
-const PHASE={expand:'توسّع برّي',naval:'عبور بحري',"expand+naval":'برّي+بحري',save:'توفير',zoom:'تكبير العرض',spawn:'بداية'};
+const PHASE={expand:'توسّع برّي',naval:'عبور بحري',"expand+naval":'برّي+بحري',save:'توفير',
+  zoom:'تكبير العرض',spawn:'بداية',find_spawn:'يختار مكان النزول',lobby:'في الردهة',find_friend:'يبحث عن الصديق'};
 async function poll(){
   try{
     const r = await fetch('/api/status'); const s = await r.json();

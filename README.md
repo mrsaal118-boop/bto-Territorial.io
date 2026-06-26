@@ -35,6 +35,17 @@ python app.py
 A native window opens. If your machine has no webview runtime, it falls back to
 opening the panel in your default browser.
 
+### Run the offline tests
+
+The bot's game-driving needs a real browser and the live site, but everything
+else is covered by an offline test suite (control API, config/consent rules, and
+the in-page vision JS syntax):
+
+```bash
+pip install pytest httpx
+python tests/test_app.py
+```
+
 > The bot launches its own Chromium. To instead drive an already-open Chrome,
 > set `TIO_CDP=http://localhost:<port>` (Chrome started with
 > `--remote-debugging-port=<port>`).

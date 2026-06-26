@@ -21,7 +21,8 @@ Usage:
     python bot.py '{"name":"DevinBot","mode":"custom_br","players":24,"secs":150}'
 """
 import asyncio, sys, json, time, os, pathlib
-from playwright.async_api import async_playwright
+# Playwright is imported lazily inside play() so this module can be imported
+# (for config validation, tests, the --bot worker dispatch) without it.
 
 GAME_URL = "https://territorial.io/"
 
@@ -217,6 +218,25 @@ async def resolve_friend_color(page, friend_name, CW, CH):
     print(f"friend-name: '{friend_name}' not found on map; using colour fallback")
     return None
 
+async def choose_spawn(page, attempts=6):
+    """Find a safe patch of open land and click it to place our starting
+    territory. Used in BOTH local and online modes: territorial.io makes you
+    pick a spawn on the map when a match starts, so this must run for
+    multiplayer too (otherwise the bot never lands and just idles). Retries
+    while the map is still loading and returns the spawn info, or None."""
+    for i in range(attempts):
+        sp = await page.evaluate(FIND_SPAWN_JS)
+        if sp:
+            sxr = sp['cssW'] / sp['W']; syr = sp['cssH'] / sp['H']
+            cssx, cssy = sp['x'] * sxr, sp['y'] * syr
+            await page.mouse.click(cssx, cssy); await page.wait_for_timeout(700)
+            await page.mouse.click(cssx, cssy); await page.wait_for_timeout(1700)
+            print("spawn:", sp, "(attempt", i + 1, ")")
+            return sp
+        report(status="playing", phase="find_spawn", spawn_try=i + 1)
+        await page.wait_for_timeout(1300)
+    return None
+
 MP_TAB = {"mp_team": "Team", "mp_ffa": "Battle Royale", "mp_1v1": "1v1", "mp_zombie": "Zombie"}
 
 async def setup_multiplayer(page, name, mode):
@@ -227,10 +247,17 @@ async def setup_multiplayer(page, name, mode):
     """
     await page.goto(GAME_URL); await page.wait_for_timeout(3500)
     await fill_first(page, "input[type=text]", name)
-    await click_text(page, "Multiplayer"); await page.wait_for_timeout(2500)
+    ok_mp = await click_text(page, "Multiplayer"); await page.wait_for_timeout(2500)
     tab = MP_TAB.get(mode, "Battle Royale")
-    await click_text(page, tab, timeout=4000); await page.wait_for_timeout(800)
-    await click_text(page, "Ready", timeout=4000)
+    ok_tab = await click_text(page, tab, timeout=4000); await page.wait_for_timeout(800)
+    # the lobby's confirm button is "Ready" in most modes but "Play" in some;
+    # try both so we don't stall in the lobby.
+    ok_ready = await click_text(page, "Ready", timeout=4000)
+    if not ok_ready:
+        ok_ready = await click_text(page, "Play", timeout=3000)
+    report(status="entering_game", phase="lobby",
+           entered_mp=ok_mp, picked_mode=ok_tab, pressed_ready=ok_ready, tab=tab)
+    print("multiplayer entry:", {"mp": ok_mp, "tab": (tab, ok_tab), "ready": ok_ready})
     # wait for the match to actually start (lobby countdown)
     await page.wait_for_timeout(8000)
 
@@ -240,6 +267,7 @@ async def play(cfg):
     friend_color = cfg.get("friend_color")
     is_mp = mode.startswith("mp_")
     report(status="starting", name=name, mode=mode, players=players)
+    from playwright.async_api import async_playwright
     async with async_playwright() as p:
         browser, page = await open_page(p, cfg)
         try: await page.bring_to_front()
@@ -249,14 +277,15 @@ async def play(cfg):
             await setup_multiplayer(page, name, mode)
         else:
             await setup_custom(page, name, players, mode)
-            sp = await page.evaluate(FIND_SPAWN_JS)
-            print("spawn:", sp)
-            if not sp:
-                report(status="error", error="no safe spawn found"); return
-            sxr = sp['cssW']/sp['W']; syr = sp['cssH']/sp['H']
-            cssx, cssy = sp['x']*sxr, sp['y']*syr
-            await page.mouse.click(cssx, cssy); await page.wait_for_timeout(700)
-            await page.mouse.click(cssx, cssy); await page.wait_for_timeout(1900)
+
+        # Pick where to land — required for online modes too (you choose a spawn
+        # on the map when the match starts), not just local Custom Scenarios.
+        report(status="playing", phase="find_spawn")
+        sp = await choose_spawn(page)
+        if not sp:
+            report(status="error",
+                   error="no safe spawn found (map not ready or no open land)")
+            return
 
         rect = await page.evaluate("()=>{const r=document.getElementById('canvasA').getBoundingClientRect();return {l:r.left,t:r.top,w:r.width,h:r.height};}")
         CL, CT, CW, CH = rect['l'], rect['t'], rect['w'], rect['h']
